@@ -1,0 +1,5378 @@
+Initialize the program!
+Verify Test Cases
+All passed!
+Done Verification
+Generating repair candidates!
+Processing prog.c
+Total 26 different repair schemas!!!!
+Total 98 different repair candidate templates for scoring!!!
+Trying different candidates!
+BasicTester pointer: 0xabfbcd8
+StringConstTester pointer: 0xabfbfc0
+CondTester pointer: 0xac03210
+Counter: 1
+Batcher Size:0
+Preprocess the following candidate with CondTester:
+Priority 20000
+At location prog.c:87
+--Src File: prog.c
+Fragment 0:
+if (((e->right != ((void *)0)) && (e->left != ((void *)0))) && !(__abst_hole(e, e->left, e->right, value, e->value, cnt, e->parent, root, e->color))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+
+CondTester, a patch instance with id 0:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if (((e->right != ((void *)0)) && (e->left != ((void *)0))) && !(__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color)))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Spawn 1 instances, now Total 1
+Counter: 2
+Batcher Size:1
+Preprocess the following candidate with CondTester:
+Priority 20000
+At location prog.c:87
+--Src File: prog.c
+Fragment 0:
+if (((e->right != ((void *)0)) && (e->left != ((void *)0))) || (__abst_hole(e, e->left, e->right, value, e->value, cnt, e->parent, root, e->color))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+
+CondTester, a patch instance with id 1:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if (((e->right != ((void *)0)) && (e->left != ((void *)0))) || (__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color)))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Spawn 1 instances, now Total 2
+Counter: 3
+Batcher Size:2
+Preprocess the following candidate with CondTester:
+Priority 20000
+At location prog.c:87
+--Src File: prog.c
+Fragment 0:
+if ((((e->right != ((void *)0))) || (__abst_hole(e, e->left, e->right, value, e->value, cnt, e->parent, root, e->color))) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+
+CondTester, a patch instance with id 2:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if ((((e->right != ((void *)0))) || (__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color)))) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Spawn 1 instances, now Total 3
+Counter: 4
+Batcher Size:3
+Preprocess the following candidate with CondTester:
+Priority 5000
+At location prog.c:87
+--Src File: prog.c
+Fragment 0:
+if (!(__abst_hole(e, e->left, e->right, value, e->value, cnt, e->parent, root, e->color)))
+    if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+        struct Entry *p = e->right;
+        while ((p->left != ((void *)0)))
+            p = p->left;
+        e = p;
+    } else {
+        struct Entry *ch = e;
+        struct Entry *p = e->parent;
+        while ((p != ((void *)0)) && (ch == p->right))
+            {
+                ch = p;
+                p = p->parent;
+            }
+        e = p;
+    }
+
+
+CondTester, a patch instance with id 3:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if (!(__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color))))
+    if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+        struct Entry *p = e->right;
+        while ((p->left != ((void *)0)))
+            p = p->left;
+        e = p;
+    } else {
+        struct Entry *ch = e;
+        struct Entry *p = e->parent;
+        while ((p != ((void *)0)) && (ch == p->right))
+            {
+                ch = p;
+                p = p->parent;
+            }
+        e = p;
+    }
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Spawn 1 instances, now Total 4
+Counter: 5
+Batcher Size:4
+Preprocess the following candidate with BasicTester:
+Priority 5000
+At location prog.c:87
+--Src File: prog.c
+Fragment 0:
+memset(e, 0, sizeof (*(e)));
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+
+BasicTester, a patch instance with id 0:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+memset(e, 0, sizeof (*(e)));
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Spawn 1 instances, now Total 5
+Counter: 6
+Batcher Size:5
+Preprocess the following candidate with CondTester:
+Priority 5000
+At location prog.c:87
+--Src File: prog.c
+Fragment 0:
+if ((__abst_hole(e, e->left, e->right, value, e->value, cnt, e->parent, root, e->color)))
+    return 0;
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+
+CondTester, a patch instance with id 4:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if ((__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color))))
+    return 0;
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Spawn 1 instances, now Total 6
+Counter: 7
+Batcher Size:6
+Preprocess the following candidate with CondTester:
+Priority 5000
+At location prog.c:87
+--Src File: prog.c
+Fragment 0:
+if ((__abst_hole(e, e->left, e->right, value, e->value, cnt, e->parent, root, e->color)))
+    return 10;
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+
+CondTester, a patch instance with id 5:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if ((__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color))))
+    return 10;
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Spawn 1 instances, now Total 7
+Counter: 8
+Batcher Size:7
+Preprocess the following candidate with CondTester:
+Priority 5000
+At location prog.c:87
+--Src File: prog.c
+Fragment 0:
+if ((__abst_hole(e, e->left, e->right, value, e->value, cnt, e->parent, root, e->color)))
+    break;
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+
+CondTester, a patch instance with id 6:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if ((__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color))))
+    break;
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Spawn 1 instances, now Total 8
+Counter: 9
+Batcher Size:8
+Preprocess the following candidate with CondTester:
+Priority 5000
+At location prog.c:87
+--Src File: prog.c
+Fragment 0:
+if ((__abst_hole(e, e->left, e->right, value, e->value, cnt, e->parent, root, e->color)))
+    return 1;
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+
+CondTester, a patch instance with id 7:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if ((__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color))))
+    return 1;
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Spawn 1 instances, now Total 9
+Counter: 10
+Batcher Size:9
+Preprocess the following candidate with BasicTester:
+Priority -0
+At location prog.c:87
+--Src File: prog.c
+Fragment 0:
+newEntry(&(e));
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+
+BasicTester, a patch instance with id 1:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+newEntry(&(e));
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Spawn 1 instances, now Total 10
+a batched test job starts!
+Building merged code:
+src_file: prog.c
+full src: int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        //prophet generated patch
+        if (__get_mutant()==0) {
+        if (((e->right != ((void *)0)) && (e->left != ((void *)0))) && !(__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color)))) {
+            struct Entry *p = e->right;
+            while ((p->left != ((void *)0)))
+                p = p->left;
+            e = p;
+        } else {
+            struct Entry *ch = e;
+            struct Entry *p = e->parent;
+            while ((p != ((void *)0)) && (ch == p->right))
+                {
+                    ch = p;
+                    p = p->parent;
+                }
+            e = p;
+        }
+        }
+        else if (__get_mutant()==1) {
+        if (((e->right != ((void *)0)) && (e->left != ((void *)0))) || (__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color)))) {
+            struct Entry *p = e->right;
+            while ((p->left != ((void *)0)))
+                p = p->left;
+            e = p;
+        } else {
+            struct Entry *ch = e;
+            struct Entry *p = e->parent;
+            while ((p != ((void *)0)) && (ch == p->right))
+                {
+                    ch = p;
+                    p = p->parent;
+                }
+            e = p;
+        }
+        }
+        else if (__get_mutant()==2) {
+        if ((((e->right != ((void *)0))) || (__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color)))) && (e->left != ((void *)0))) {
+            struct Entry *p = e->right;
+            while ((p->left != ((void *)0)))
+                p = p->left;
+            e = p;
+        } else {
+            struct Entry *ch = e;
+            struct Entry *p = e->parent;
+            while ((p != ((void *)0)) && (ch == p->right))
+                {
+                    ch = p;
+                    p = p->parent;
+                }
+            e = p;
+        }
+        }
+        else if (__get_mutant()==3) {
+        if (!(__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color))))
+            if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+                struct Entry *p = e->right;
+                while ((p->left != ((void *)0)))
+                    p = p->left;
+                e = p;
+            } else {
+                struct Entry *ch = e;
+                struct Entry *p = e->parent;
+                while ((p != ((void *)0)) && (ch == p->right))
+                    {
+                        ch = p;
+                        p = p->parent;
+                    }
+                e = p;
+            }
+        }
+        else if (__get_mutant()==4) {
+        memset(e, 0, sizeof (*(e)));
+        if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+            struct Entry *p = e->right;
+            while ((p->left != ((void *)0)))
+                p = p->left;
+            e = p;
+        } else {
+            struct Entry *ch = e;
+            struct Entry *p = e->parent;
+            while ((p != ((void *)0)) && (ch == p->right))
+                {
+                    ch = p;
+                    p = p->parent;
+                }
+            e = p;
+        }
+        }
+        else if (__get_mutant()==5) {
+        if ((__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color))))
+            return 0;
+        if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+            struct Entry *p = e->right;
+            while ((p->left != ((void *)0)))
+                p = p->left;
+            e = p;
+        } else {
+            struct Entry *ch = e;
+            struct Entry *p = e->parent;
+            while ((p != ((void *)0)) && (ch == p->right))
+                {
+                    ch = p;
+                    p = p->parent;
+                }
+            e = p;
+        }
+        }
+        else if (__get_mutant()==6) {
+        if ((__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color))))
+            return 10;
+        if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+            struct Entry *p = e->right;
+            while ((p->left != ((void *)0)))
+                p = p->left;
+            e = p;
+        } else {
+            struct Entry *ch = e;
+            struct Entry *p = e->parent;
+            while ((p != ((void *)0)) && (ch == p->right))
+                {
+                    ch = p;
+                    p = p->parent;
+                }
+            e = p;
+        }
+        }
+        else if (__get_mutant()==7) {
+        if ((__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color))))
+            break;
+        if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+            struct Entry *p = e->right;
+            while ((p->left != ((void *)0)))
+                p = p->left;
+            e = p;
+        } else {
+            struct Entry *ch = e;
+            struct Entry *p = e->parent;
+            while ((p != ((void *)0)) && (ch == p->right))
+                {
+                    ch = p;
+                    p = p->parent;
+                }
+            e = p;
+        }
+        }
+        else if (__get_mutant()==8) {
+        if ((__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color))))
+            return 1;
+        if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+            struct Entry *p = e->right;
+            while ((p->left != ((void *)0)))
+                p = p->left;
+            e = p;
+        } else {
+            struct Entry *ch = e;
+            struct Entry *p = e->parent;
+            while ((p != ((void *)0)) && (ch == p->right))
+                {
+                    ch = p;
+                    p = p->parent;
+                }
+            e = p;
+        }
+        }
+        else if (__get_mutant()==9) {
+        newEntry(&(e));
+        if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+            struct Entry *p = e->right;
+            while ((p->left != ((void *)0)))
+                p = p->left;
+            e = p;
+        } else {
+            struct Entry *ch = e;
+            struct Entry *p = e->parent;
+            while ((p != ((void *)0)) && (ch == p->right))
+                {
+                    ch = p;
+                    p = p->parent;
+                }
+            e = p;
+        }
+        }
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Merged code building succ, going to invoke tester!
+CondTester, Testing instance id 0:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if (((e->right != ((void *)0)) && (e->left != ((void *)0))) && !(__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color)))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Testing negative cases!
+Testing 5 (with abstract condition)
+Iteration 0
+Branch 0: 0
+Iteration 1
+Branch 0: 1
+CondTester, Testing instance id 1:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if (((e->right != ((void *)0)) && (e->left != ((void *)0))) || (__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color)))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Testing negative cases!
+Testing 5 (with abstract condition)
+Iteration 0
+Branch 0: 0
+Branch 1: 0
+Iteration 1
+Branch 0: 0
+Branch 1: 1
+Passed in iteration!
+Testing 10 (with abstract condition)
+Iteration 0
+Branch 0: 0
+Branch 1: 0
+Branch 2: 0
+Branch 3: 0
+Iteration 1
+Branch 0: 0
+Branch 1: 0
+Branch 2: 0
+Branch 3: 1
+Branch 4: 0
+Iteration 2
+Branch 0: 0
+Branch 1: 0
+Branch 2: 0
+Branch 3: 1
+Branch 4: 1
+Iteration 3
+Branch 0: 0
+Branch 1: 0
+Branch 2: 1
+Branch 3: 0
+Branch 4: 0
+Iteration 4
+Branch 0: 0
+Branch 1: 0
+Branch 2: 1
+Branch 3: 0
+Branch 4: 1
+Branch 5: 0
+Iteration 5
+Branch 0: 0
+Branch 1: 0
+Branch 2: 1
+Branch 3: 0
+Branch 4: 1
+Branch 5: 1
+Iteration 6
+Branch 0: 0
+Branch 1: 0
+Branch 2: 1
+Branch 3: 1
+Iteration 7
+Branch 0: 0
+Branch 1: 1
+Branch 2: 0
+Branch 3: 0
+Branch 4: 0
+Iteration 8
+Branch 0: 0
+Branch 1: 1
+Branch 2: 0
+Branch 3: 0
+Branch 4: 1
+Branch 5: 0
+Iteration 9
+Branch 0: 0
+Branch 1: 1
+Branch 2: 0
+Branch 3: 0
+Branch 4: 1
+Branch 5: 1
+Log 0 1
+Testing 11 (with abstract condition)
+Iteration 0
+Branch 0: 0
+Branch 1: 0
+Branch 2: 0
+Branch 3: 0
+Iteration 1
+Branch 0: 0
+Branch 1: 0
+Branch 2: 0
+Branch 3: 1
+Branch 4: 0
+Iteration 2
+Branch 0: 0
+Branch 1: 0
+Branch 2: 0
+Branch 3: 1
+Branch 4: 1
+Iteration 3
+Branch 0: 0
+Branch 1: 0
+Branch 2: 1
+Iteration 4
+Branch 0: 0
+Branch 1: 1
+Passed in iteration!
+Passed Negative Cases wiht CondTestder!
+Testing positive cases!
+Passed Positive Cases
+Collect values for post processing!
+Passed!
+CondTester, Testing instance id 2:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if ((((e->right != ((void *)0))) || (__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color)))) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Testing negative cases!
+Testing 5 (with abstract condition)
+Iteration 0
+Not caught by the negative case, give up!
+CondTester, Testing instance id 3:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if (!(__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color))))
+    if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+        struct Entry *p = e->right;
+        while ((p->left != ((void *)0)))
+            p = p->left;
+        e = p;
+    } else {
+        struct Entry *ch = e;
+        struct Entry *p = e->parent;
+        while ((p != ((void *)0)) && (ch == p->right))
+            {
+                ch = p;
+                p = p->parent;
+            }
+        e = p;
+    }
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Testing negative cases!
+Testing 5 (with abstract condition)
+Iteration 0
+Branch 0: 0
+Branch 1: 0
+Branch 2: 0
+Iteration 1
+Branch 0: 0
+Branch 1: 0
+Branch 2: 1
+Branch 3: 0
+Iteration 2
+Branch 0: 0
+Branch 1: 0
+Branch 2: 1
+Branch 3: 1
+Branch 4: 0
+Iteration 3
+Branch 0: 0
+Branch 1: 0
+Branch 2: 1
+Branch 3: 1
+Branch 4: 1
+Branch 5: 0
+Iteration 4
+Branch 0: 0
+Branch 1: 0
+Branch 2: 1
+Branch 3: 1
+Branch 4: 1
+Branch 5: 1
+Branch 6: 0
+Iteration 5
+Branch 0: 0
+Branch 1: 0
+Branch 2: 1
+Branch 3: 1
+Branch 4: 1
+Branch 5: 1
+Branch 6: 1
+Branch 7: 0
+Iteration 6
+Branch 0: 0
+Branch 1: 0
+Branch 2: 1
+Branch 3: 1
+Branch 4: 1
+Branch 5: 1
+Branch 6: 1
+Branch 7: 1
+Branch 8: 0
+Iteration 7
+Branch 0: 0
+Branch 1: 0
+Branch 2: 1
+Branch 3: 1
+Branch 4: 1
+Branch 5: 1
+Branch 6: 1
+Branch 7: 1
+Branch 8: 1
+Branch 9: 0
+Iteration 8
+Branch 0: 0
+Branch 1: 0
+Branch 2: 1
+Branch 3: 1
+Branch 4: 1
+Branch 5: 1
+Branch 6: 1
+Branch 7: 1
+Branch 8: 1
+Branch 9: 1
+Iteration 9
+Branch 0: 0
+Branch 1: 1
+Branch 2: 0
+Branch 3: 0
+BasicTester, Testing instance id 0:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+memset(e, 0, sizeof (*(e)));
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Testing negative cases!
+CondTester, Testing instance id 4:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if ((__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color))))
+    return 0;
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Testing negative cases!
+Testing 5 (with abstract condition)
+Iteration 0
+Branch 0: 0
+Branch 1: 0
+Branch 2: 0
+Iteration 1
+Branch 0: 0
+Branch 1: 0
+Branch 2: 1
+Passed in iteration!
+Testing 10 (with abstract condition)
+Iteration 0
+Branch 0: 0
+Branch 1: 0
+Branch 2: 0
+Branch 3: 0
+Branch 4: 0
+Branch 5: 0
+Branch 6: 0
+Iteration 1
+Branch 0: 0
+Branch 1: 0
+Branch 2: 0
+Branch 3: 0
+Branch 4: 0
+Branch 5: 0
+Branch 6: 1
+Passed in iteration!
+Testing 11 (with abstract condition)
+Iteration 0
+Branch 0: 0
+Branch 1: 0
+Branch 2: 0
+Branch 3: 0
+Branch 4: 0
+Branch 5: 0
+Branch 6: 0
+Iteration 1
+Branch 0: 0
+Branch 1: 0
+Branch 2: 0
+Branch 3: 0
+Branch 4: 0
+Branch 5: 0
+Branch 6: 1
+Passed in iteration!
+Passed Negative Cases wiht CondTestder!
+Testing positive cases!
+Passed Positive Cases
+Collect values for post processing!
+Passed!
+CondTester, Testing instance id 5:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if ((__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color))))
+    return 10;
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Testing negative cases!
+Testing 5 (with abstract condition)
+Iteration 0
+Branch 0: 0
+Branch 1: 0
+Branch 2: 0
+Iteration 1
+Branch 0: 0
+Branch 1: 0
+Branch 2: 1
+Iteration 2
+Branch 0: 0
+Branch 1: 1
+Iteration 3
+Branch 0: 1
+CondTester, Testing instance id 6:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if ((__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color))))
+    break;
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Testing negative cases!
+Testing 5 (with abstract condition)
+Iteration 0
+Branch 0: 0
+Branch 1: 0
+Branch 2: 0
+Iteration 1
+Branch 0: 0
+Branch 1: 0
+Branch 2: 1
+Iteration 2
+Branch 0: 0
+Branch 1: 1
+Iteration 3
+Branch 0: 1
+CondTester, Testing instance id 7:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if ((__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color))))
+    return 1;
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Testing negative cases!
+Testing 5 (with abstract condition)
+Iteration 0
+Branch 0: 0
+Branch 1: 0
+Branch 2: 0
+Iteration 1
+Branch 0: 0
+Branch 1: 0
+Branch 2: 1
+Iteration 2
+Branch 0: 0
+Branch 1: 1
+Iteration 3
+Branch 0: 1
+BasicTester, Testing instance id 1:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+newEntry(&(e));
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Testing negative cases!
+CondTester, Postprocessing instance id 1:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if (((e->right != ((void *)0)) && (e->left != ((void *)0))) || (__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color)))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Trying a synthesis expr 1
+Verifing Negative cases!
+Not passed!
+Trying a synthesis expr e->right != 0
+Verifing Negative cases!
+Verifying positive cases
+Passed Positive Cases
+Passed!
+Passed with updated best score 19999999.000000
+CondTester, Postprocessing instance id 4:
+//src_file:prog.c
+//Total frags: 1
+//CodeSeg 0:
+int __get_mutant(); int __is_neg(int, ...); int __abst_hole(); 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Entry {
+    struct Entry* parent;
+    struct Entry* left;
+    struct Entry* right;
+    char* value;
+    int color;
+};
+
+struct TreeMap {
+    struct Entry* root;
+    int size;
+};
+
+void newEntry(struct Entry** n);
+void newTreeMap(struct TreeMap** t);
+void getFirstEntry(struct TreeMap** tree, struct Entry** p);
+void successor(struct Entry** t, struct Entry** p);
+int containsValue(struct Entry* root, char* value);
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res);
+void buildTree(int size, char** value, struct Entry** root) ;
+int val_i;
+
+void newEntry(struct Entry** n) {
+     *n = malloc (sizeof (struct Entry));
+    (*n)->parent = NULL;
+    (*n)->left = NULL;
+    (*n)->right = NULL;
+    (*n)->color = 1;
+    (*n)->value = NULL;
+}
+
+void newTreeMap(struct TreeMap** t) {
+    *t = malloc(sizeof (struct TreeMap));
+    (*t)->root = NULL;
+    (*t)->size = 0;
+}
+
+void getFirstEntry(struct TreeMap** tree, struct Entry** p) {
+    *p = (*tree)->root;
+    if ((*p)!=NULL) {
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+    }
+    return ;
+}
+
+void successor(struct Entry** t, struct Entry** p) {
+    if ((*t)==NULL) {
+        (*p)=NULL;
+        return;
+    }else if ((*t)->left !=NULL) {
+        *p = (*t)->right;
+        while ((*p)->left != NULL)
+            *p = (*p)->left;
+        return;
+    } else {
+        *p = (*t)->parent;
+        struct Entry* ch = *t;
+        while (((*p) != NULL) && (ch ==(*p)->right)) {
+            ch = *p;
+            *p = (*p)->parent;
+        }
+        return;
+    }
+}
+
+int containsValue(struct Entry* root, char* value) {
+    struct Entry* e = root;
+//    printf("contains value %s root %s, %d",value, e->value,strcmp(value, e->value));
+    if (e !=NULL) {
+        while (e->left != NULL)
+            e = e->left;
+    }
+
+    int cnt = 0;
+    while ((e!= NULL)&& (cnt<10)) {
+        cnt++;
+
+        if ((value ==NULL && e->value == NULL) || (strcmp(value, e->value)==0))
+            return 0;
+        // BUG RBTERR4
+        
+//Patch 0:
+if ((__is_neg(9, &(e), sizeof (e), &(e->left), sizeof (e->left), &(e->right), sizeof (e->right), &(value), sizeof (value), &(e->value), sizeof (e->value), &(cnt), sizeof (cnt), &(e->parent), sizeof (e->parent), &(root), sizeof (root), &(e->color), sizeof (e->color))))
+    return 0;
+if ((e->right != ((void *)0)) && (e->left != ((void *)0))) {
+    struct Entry *p = e->right;
+    while ((p->left != ((void *)0)))
+        p = p->left;
+    e = p;
+} else {
+    struct Entry *ch = e;
+    struct Entry *p = e->parent;
+    while ((p != ((void *)0)) && (ch == p->right))
+        {
+            ch = p;
+            p = p->parent;
+        }
+    e = p;
+}
+
+//CodeSeg 1:
+    }
+   // if (cnt==10)
+     //   return 1;
+    return 1;
+}
+
+void buildFromSorted (int level, int lo, int hi, int redLevel, char** value, struct Entry** res) {
+    if (hi < lo) {
+        *res = NULL;
+        return;
+    }
+    int mid = (lo+hi)/2;
+    struct Entry* left = NULL;
+    if (lo < mid)
+         buildFromSorted(level+1, lo, mid-1,redLevel, value, &left);
+
+    struct Entry* middle;
+    newEntry(&middle);
+//     printf("build sort middle value %s, %s,",value[0],value[val_i]);
+    middle->value = value[val_i++];
+
+
+    if (level==redLevel)
+        middle->color = 0;
+    if (left != NULL) {
+        middle->left = left;
+        left->parent = middle;
+    }
+
+    if (mid < hi) {
+        struct Entry* right;
+        buildFromSorted(level+1,mid+1,hi, redLevel, value, &right);
+        middle->right = right;
+        right->parent = middle;
+    }
+    *res = middle;
+}
+
+void buildTree(int size, char** value, struct Entry** root) {
+    int level = 0;
+    for (int m=size-1;m>=0;m=m/2-1)
+        level++;
+
+    buildFromSorted(0,0,size-1,level,value,root);
+}
+
+void printTree(struct Entry* root) {
+    if (root==NULL) return;
+    printf("%s ",root->value);
+    printTree(root->left);
+     printTree(root->right);
+}
+int main(int argc, char* argv[]) {
+    if (argc<2) return 0;
+    FILE *f = fopen(argv[1],"r");
+    if (f==NULL)
+        return 0;
+
+    struct TreeMap* t;
+    newTreeMap(&t);
+
+    char x[20];
+     char* input[20];
+    int i=0;
+    char find[10];
+    fscanf(f,"%s",find);
+    fscanf(f,"%s",find);
+    while (fscanf(f,"%s",x)==1) {
+        if (x[0]!= '"') {
+            int len = strlen(x)+1;
+            input[i] = (char*) malloc(len * sizeof (char));// (char*) malloc (sizeof (char*len))
+           strcpy(input[i],x);
+            i = i+1;
+        }
+    }
+    fclose(f);
+//    printf("size %d,",i);
+    val_i = 0;
+//    for (int j=0;j<i;j++)
+//        printf("%s ",input[j]);
+
+    struct Entry* root = t->root;
+    buildTree(i,input,&root);
+//    printf("%s ","after build tree root ");
+//    printTree(root);
+    int res = containsValue(root, find);
+    printf("%d",res);
+
+    return 0;
+}
+
+Postprocessing failed!
+Generate a candidate with schema id: 2
+Total cnt of passed cond schemas: 2
+Total cnt of cond schemas: 8
+Counter: 11
+Batcher Size:0
+The found score 19999999.000000 is greater than current score -0.000000!
+Terminate current session!
+Generate a candidate with schema id: 2
+Total cnt of passed cond schemas: 2
+Total cnt of cond schemas: 8
+The first schema id that generates patch: 2
+Found a fix! Store to: __fixed_prog.c
+Repair process ends successfully!
+Total 26 different repair schemas!!!!
+Total 98 different repair candidate templates for scoring!!!
+Total number of compiles: 3
+Total number of test eval: 108
