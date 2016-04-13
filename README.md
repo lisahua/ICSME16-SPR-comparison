@@ -13,6 +13,7 @@ We use GenProg-2.2 in 2013 and install it on  32-bit Linux Ubuntu Virtual Machin
 * Same as SPR, we compare its efficacy by providing fix location and exhaustively searching the entire search space. 
 * To improve search effectiveness, we use two search strategies: Brute search strategy (default strategy) and Genetic Algirithm search strategy.
 
+Note that GenProg is updated frequently and its repair efficacy varies from version to version. I try the latest version 3.0 and it cannot find the plausible fix for RBTERR3. Other numbers are the same as version 2.2. 
 
 As the paper is under submission, we only provide generated patches in this repository. More data such as test cases, configuration, and faulty source code are available upon asking. 
 
